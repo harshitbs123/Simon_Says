@@ -2,6 +2,10 @@
 
 A modern, arcade-styled Simon memory game built with vanilla JavaScript, modern CSS, and Tailwind CSS. Features live audio synthesis via the Web Audio API, spring physics, and persistent local scoring.
 
+## 🚀 Live Demo
+
+[Play Simon Says] (https://harshit-simonsays.netlify.app/)
+
 ## Core Architecture
 
 - **DOM Manipulation**: Cached element selectors (`$`), dynamic class toggling for pad flashes (`.flash`), pulse rings (`.pulse-glow`), and game-over shakes (`.screen-shake`). Real-time text nodes (`#level-num`, `#feedback-msg`, `#best-score`).
