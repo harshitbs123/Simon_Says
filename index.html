@@ -1,405 +1,178 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Simon Says</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="shortcut icon" href="./assets/logo.png" type="image/x-icon">
-    <style>
-      /* Font */
-      @font-face {
-        font-family: "Nohemi";
-        src: url("./assets/Nohemi-Regular.otf") format("opentype");
-        font-display: swap;
-      }
-      body {
-        font-family: "Nohemi", system-ui, sans-serif;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simon Says</title>
+  <link rel="shortcut icon" href="./assets/logo.png" type="image/x-icon" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    @font-face {
+      font-family: "Nohemi";
+      src: url("./assets/Nohemi-Regular.otf") format("opentype");
+      font-display: swap;
+    }
+    body { font-family: "Nohemi", system-ui, sans-serif; }
 
-      /* Spring bounce — can't be expressed in Tailwind */
-      .bouncy {
-        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      }
-      .bouncy:hover {
-        transform: translateY(-3px) scale(1.06);
-      }
-      .bouncy:active {
-        transform: scale(0.95);
-        transition-duration: 0.08s;
-      }
+    /* Spring physics */
+    .bouncy { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .bouncy:hover { transform: translateY(-3px) scale(1.06); }
+    .bouncy:active { transform: scale(0.95); }
 
-      /* Pad physics */
-      .game-pad {
-        position: relative;
-        cursor: pointer;
-        overflow: hidden;
-        transition:
-          transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
-          box-shadow 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
-          filter 0.15s ease;
-      }
-      /* Top gloss sheen */
-      .game-pad::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(
-          160deg,
-          rgba(255, 255, 255, 0.28) 0%,
-          transparent 52%
-        );
-        border-radius: inherit;
-        pointer-events: none;
-      }
-      /* Bottom depth bevel */
-      .game-pad::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        box-shadow: inset 0 -7px 0 rgba(0, 0, 0, 0.22);
-        pointer-events: none;
-      }
-      .game-pad:hover {
-        transform: translateY(-8px) scale(1.03);
-      }
-      .game-pad:active {
-        transform: translateY(2px) scale(0.96);
-        transition-duration: 0.08s;
-      }
+    /* Tactile pads */
+    .game-pad {
+      position: relative;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.15s ease;
+    }
+    .game-pad::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(160deg, rgba(255,255,255,0.28) 0%, transparent 52%);
+      border-radius: inherit;
+      pointer-events: none;
+    }
+    .game-pad::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow: inset 0 -7px 0 rgba(0,0,0,0.22);
+      pointer-events: none;
+    }
+    .game-pad:hover { transform: translateY(-8px) scale(1.03); }
+    .game-pad:active { transform: translateY(2px) scale(0.96); }
+    .game-pad.flash { filter: brightness(2.4) !important; transform: scale(1.06) !important; }
 
-      /* Sequence flash */
-      .game-pad.flash {
-        filter: brightness(2.4) !important;
-        transform: scale(1.06) !important;
-        transition: all 0.08s ease !important;
-      }
+    /* Keyframe animations */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px); }
+      40%, 80% { transform: translateX(10px); }
+    }
+    .screen-shake { animation: shake 0.42s ease both; }
 
-      /* Game-over shake */
-      @keyframes shake {
-        0%,
-        100% {
-          transform: translateX(0);
-        }
-        20%,
-        60% {
-          transform: translateX(-10px);
-        }
-        40%,
-        80% {
-          transform: translateX(10px);
-        }
-      }
-      .screen-shake {
-        animation: shake 0.42s ease both;
-      }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4); }
+      50% { box-shadow: 0 0 0 12px rgba(168, 85, 247, 0); }
+    }
+    .pulse-glow { animation: pulse 2.2s infinite ease-in-out; }
 
-      /* Center button idle pulse */
-      @keyframes pulse {
-        0%,
-        100% {
-          box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
-        }
-        50% {
-          box-shadow: 0 0 0 12px rgba(168, 85, 247, 0);
-        }
-      }
-      .pulse-glow {
-        animation: pulse 2.2s infinite ease-in-out;
-      }
+    /* Fullscreen layout */
+    #game-frame:fullscreen {
+      width: 100vw !important; max-width: 100vw !important;
+      height: 100dvh !important; max-height: 100dvh !important;
+      border-radius: 0 !important; border: none !important;
+      background: #090816 !important;
+      display: flex !important; flex-direction: column !important;
+      align-items: center !important; justify-content: space-between !important;
+      padding: 0 !important; overflow: hidden !important;
+    }
+    #game-frame:fullscreen .info-bar { width: 100% !important; max-width: 48rem !important; padding: 1rem 2rem !important; }
+    #game-frame:fullscreen .controls-bar { width: 100% !important; max-width: 48rem !important; padding: 0.85rem 2rem !important; }
+    #game-frame:fullscreen #pad-area {
+      flex: 1 1 auto !important; min-height: 0 !important; width: 100% !important;
+      aspect-ratio: unset !important; display: flex !important;
+      align-items: center !important; justify-content: center !important;
+      position: relative !important; padding: 0.5rem 1rem !important;
+    }
+    #game-frame:fullscreen #pad-grid {
+      width: 100% !important; height: 100% !important;
+      max-height: min(calc(100dvh - 160px), calc(100vw - 2.5rem), 520px) !important;
+      max-width: min(calc(100dvh - 160px), calc(100vw - 2.5rem), 520px) !important;
+      aspect-ratio: 1 / 1 !important; display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important; grid-template-rows: repeat(2, 1fr) !important;
+      gap: 1.25rem !important;
+    }
+    #game-frame:fullscreen #start-btn { width: clamp(64px, 16vmin, 86px) !important; height: clamp(64px, 16vmin, 86px) !important; }
+  </style>
+</head>
 
-      /* ── Fullscreen expansion ─────────────────────────────────────── */
-      #game-frame:fullscreen,
-      #game-frame:-webkit-full-screen,
-      #game-frame:-moz-full-screen {
-        width: 100vw !important;
-        max-width: 100vw !important;
-        height: 100dvh !important;
-        max-height: 100dvh !important;
-        border-radius: 0 !important;
-        border: none !important;
-        background: #090816 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        padding: 0 !important;
-        gap: 0 !important;
-        overflow: hidden !important;
-      }
+<body class="min-h-screen flex flex-col bg-[#090816] text-white selection:bg-purple-600">
 
-      /* Top info bar */
-      #game-frame:fullscreen .info-bar,
-      #game-frame:-webkit-full-screen .info-bar,
-      #game-frame:-moz-full-screen .info-bar {
-        width: 100% !important;
-        max-width: 48rem !important;
-        padding: 1rem 2rem !important;
-        flex-shrink: 0 !important;
-      }
+  <!-- Navbar -->
+  <header class="w-full bg-[#0d0b1f]/95 backdrop-blur-md border-b border-white/[0.055] sticky top-0 z-50">
+    <div class="w-full flex items-center justify-between px-8 lg:px-16 py-5">
+      <!-- Logo -->
+      <div class="flex items-center gap-3">
+        <img src="./assets/logo.png" alt="Simon Says" class="w-[1.65rem]">
+        <span class="text-[1.65rem] font-black tracking-tight leading-none">
+          Simon <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-violet-400">Says</span>
+        </span>
+      </div>
 
-      /* Bottom controls bar */
-      #game-frame:fullscreen .controls-bar,
-      #game-frame:-webkit-full-screen .controls-bar,
-      #game-frame:-moz-full-screen .controls-bar {
-        width: 100% !important;
-        max-width: 48rem !important;
-        padding: 0.85rem 2rem !important;
-        flex-shrink: 0 !important;
-      }
-
-      /* Pad area fills the middle vertical space without overflowing */
-      #game-frame:fullscreen #pad-area,
-      #game-frame:-webkit-full-screen #pad-area,
-      #game-frame:-moz-full-screen #pad-area {
-        flex: 1 1 auto !important;
-        min-height: 0 !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        aspect-ratio: unset !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        position: relative !important;
-        padding: 0.5rem 1rem !important;
-      }
-
-      /* The inner grid stays a strict square sized to NEVER exceed available height */
-      #game-frame:fullscreen #pad-grid,
-      #game-frame:-webkit-full-screen #pad-grid,
-      #game-frame:-moz-full-screen #pad-grid {
-        width: 100% !important;
-        height: 100% !important;
-        max-height: min(
-          calc(100dvh - 160px),
-          calc(100vw - 2.5rem),
-          520px
-        ) !important;
-        max-width: min(
-          calc(100dvh - 160px),
-          calc(100vw - 2.5rem),
-          520px
-        ) !important;
-        aspect-ratio: 1 / 1 !important;
-        display: grid !important;
-        grid-template-columns: repeat(2, 1fr) !important;
-        grid-template-rows: repeat(2, 1fr) !important;
-        gap: 1.25rem !important;
-      }
-
-      /* Center start button gracefully adapts in fullscreen */
-      #game-frame:fullscreen #start-btn,
-      #game-frame:-webkit-full-screen #start-btn,
-      #game-frame:-moz-full-screen #start-btn {
-        width: clamp(64px, 16vmin, 86px) !important;
-        height: clamp(64px, 16vmin, 86px) !important;
-      }
-    </style>
-  </head>
-
-  <body
-    class="min-h-screen flex flex-col bg-[#090816] text-white selection:bg-purple-600"
-  >
-    <!-- ── NAVBAR ──────────────────────────────────────────────────────── -->
-    <header
-      class="w-full bg-[#0d0b1f]/95 backdrop-blur-md border-b border-white/[0.055] sticky top-0 z-50"
-    >
-      <div class="w-full flex items-center justify-between px-8 lg:px-16 py-5">
-        <!-- Logo -->
-        <div class="flex items-center gap-4">
-          <span class="">
-            <img src="./assets/logo.png" alt="" class="w-[1.65rem]">
-          </span>
-          <span class="text-[1.65rem] font-black tracking-tight leading-none">
-            Simon
-            <span
-              class="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-violet-400"
-              >Says</span
-            >
-          </span>
+      <!-- Actions -->
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5 bg-white/[0.055] border border-white/[0.08] px-4 py-2.5 rounded-xl">
+          <span class="text-amber-400 text-sm font-semibold tracking-wide">Best</span>
+          <span id="best-score" class="text-white font-black text-xl tabular-nums">0</span>
         </div>
 
-        <!-- Controls -->
-        <div class="flex items-center gap-3">
-          <!-- Best score -->
-          <div
-            class="flex items-center gap-2.5 bg-white/[0.055] border border-white/[0.08] px-4 py-2.5 rounded-xl"
-          >
-            <span class="text-amber-400 text-sm font-semibold tracking-wide"
-              >Best</span
-            >
-            <span
-              id="best-score"
-              class="text-white font-black text-xl tabular-nums"
-              >0</span
-            >
-          </div>
+        <button id="sound-btn" title="Toggle Sound" class="bouncy w-11 h-11 rounded-xl bg-white/[0.055] hover:bg-white/[0.1] border border-white/[0.08] flex items-center justify-center">
+          <svg id="sound-icon-on" class="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+          <svg id="sound-icon-off" class="w-5 h-5 text-white/25 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+          </svg>
+        </button>
 
-          <!-- Sound -->
-          <button
-            id="sound-btn"
-            class="bouncy w-11 h-11 rounded-xl bg-white/[0.055] hover:bg-white/[0.1] border border-white/[0.08] flex items-center justify-center"
-          >
-            <svg
-              id="sound-icon-on"
-              class="w-5 h-5 text-purple-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-              />
-            </svg>
-            <svg
-              id="sound-icon-off"
-              class="w-5 h-5 text-white/25 hidden"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-              />
-            </svg>
-          </button>
+        <button id="restart-btn" title="Reset" class="bouncy w-11 h-11 rounded-xl bg-white/[0.055] hover:bg-white/[0.1] border border-white/[0.08] flex items-center justify-center">
+          <svg class="w-5 h-5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
 
-          <!-- Reset -->
-          <button
-            id="restart-btn"
-            class="bouncy w-11 h-11 rounded-xl bg-white/[0.055] hover:bg-white/[0.1] border border-white/[0.08] flex items-center justify-center"
-          >
-            <svg
-              class="w-5 h-5 text-purple-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-          </button>
+  <!-- Game Arena -->
+  <main class="flex-1 flex items-center justify-center p-6 sm:p-10">
+    <div id="game-frame" class="w-full max-w-lg bg-[#0f0e28]/80 border border-white/[0.07] rounded-3xl shadow-2xl shadow-black/50">
+
+      <!-- Header: Level & Feedback -->
+      <div class="info-bar flex items-center justify-between px-8 pt-8 pb-8 border-b border-white/[0.055]">
+        <p id="feedback-msg" class="text-base text-white/40 font-medium">Press <span class="text-white/65">Play</span> to begin</p>
+        <div class="flex items-center gap-2.5">
+          <span class="text-xs text-white/25 uppercase tracking-widest font-bold">Level</span>
+          <span id="level-num" class="text-4xl font-black text-white tabular-nums leading-none">0</span>
         </div>
       </div>
-    </header>
 
-    <!-- ── GAME ────────────────────────────────────────────────────────── -->
-    <main class="flex-1 flex items-center justify-center p-6 sm:p-10">
-      <!-- Card -->
-      <div
-        id="game-frame"
-        class="w-full max-w-lg bg-[#0f0e28]/80 border border-white/[0.07] rounded-3xl shadow-2xl shadow-black/50"
-      >
-        <!-- Level + Feedback -->
-        <div
-          class="info-bar flex items-center justify-between px-8 pt-8 pb-8 border-b border-white/[0.055]"
-        >
-          <p id="feedback-msg" class="text-base text-white/40 font-medium">
-            Press <span class="text-white/65">Play</span> to begin
-          </p>
-          <div class="flex items-center gap-2.5">
-            <span
-              class="text-xs text-white/25 uppercase tracking-widest font-bold"
-              >Level</span
-            >
-            <span
-              id="level-num"
-              class="text-4xl font-black text-white tabular-nums leading-none"
-              >0</span
-            >
-          </div>
+      <!-- Simon Grid -->
+      <div id="pad-area" class="relative aspect-square px-8 py-8">
+        <div id="pad-grid" class="grid grid-cols-2 grid-rows-2 gap-5 w-full h-full">
+          <button id="green" aria-label="Green" class="btn game-pad bg-gradient-to-br from-[#05f082] to-[#00b85c] shadow-[0_8px_28px_-4px_rgba(0,230,118,0.45)] hover:shadow-[0_18px_40px_rgba(0,230,118,0.65)] rounded-[26px] focus:outline-none"></button>
+          <button id="red" aria-label="Red" class="btn game-pad bg-gradient-to-br from-[#ff4d7a] to-[#e6194b] shadow-[0_8px_28px_-4px_rgba(255,51,102,0.45)] hover:shadow-[0_18px_40px_rgba(255,51,102,0.65)] rounded-[26px] focus:outline-none"></button>
+          <button id="yellow" aria-label="Yellow" class="btn game-pad bg-gradient-to-br from-[#ffd700] to-[#ffaa00] shadow-[0_8px_28px_-4px_rgba(255,196,0,0.45)] hover:shadow-[0_18px_40px_rgba(255,196,0,0.65)] rounded-[26px] focus:outline-none"></button>
+          <button id="blue" aria-label="Blue" class="btn game-pad bg-gradient-to-br from-[#9b68ff] to-[#6830f0] shadow-[0_8px_28px_-4px_rgba(124,77,255,0.45)] hover:shadow-[0_18px_40px_rgba(124,77,255,0.65)] rounded-[26px] focus:outline-none"></button>
         </div>
 
-        <!-- Pads -->
-        <div id="pad-area" class="relative aspect-square px-8 py-8">
-          <div
-            id="pad-grid"
-            class="grid grid-cols-2 grid-rows-2 gap-5 w-full h-full"
-          >
-            <button
-              id="green"
-              aria-label="Green"
-              class="btn game-pad bg-gradient-to-br from-[#05f082] to-[#00b85c] shadow-[0_8px_28px_-4px_rgba(0,230,118,0.45)] hover:shadow-[0_18px_40px_rgba(0,230,118,0.65)] rounded-[26px] focus:outline-none"
-            ></button>
+        <!-- Center Start / Status Button -->
+        <button id="start-btn" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[86px] h-[86px] rounded-full bg-[#090816] border-2 border-white/10 flex flex-col items-center justify-center gap-1 group hover:border-pink-500/50 pulse-glow z-20">
+          <svg id="start-icon" class="w-7 h-7 text-pink-400 fill-current ml-0.5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <span id="start-text" class="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/65 transition-colors">Play</span>
+        </button>
+      </div>
 
-            <button
-              id="red"
-              aria-label="Red"
-              class="btn game-pad bg-gradient-to-br from-[#ff4d7a] to-[#e6194b] shadow-[0_8px_28px_-4px_rgba(255,51,102,0.45)] hover:shadow-[0_18px_40px_rgba(255,51,102,0.65)] rounded-[26px] focus:outline-none"
-            ></button>
-
-            <button
-              id="yellow"
-              aria-label="Yellow"
-              class="btn game-pad bg-gradient-to-br from-[#ffd700] to-[#ffaa00] shadow-[0_8px_28px_-4px_rgba(255,196,0,0.45)] hover:shadow-[0_18px_40px_rgba(255,196,0,0.65)] rounded-[26px] focus:outline-none"
-            ></button>
-
-            <button
-              id="blue"
-              aria-label="Blue"
-              class="btn game-pad bg-gradient-to-br from-[#9b68ff] to-[#6830f0] shadow-[0_8px_28px_-4px_rgba(124,77,255,0.45)] hover:shadow-[0_18px_40px_rgba(124,77,255,0.65)] rounded-[26px] focus:outline-none"
-            ></button>
-          </div>
-
-          <!-- Center start button -->
-          <button
-            id="start-btn"
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[86px] h-[86px] rounded-full bg-[#090816] border-2 border-white/10 flex flex-col items-center justify-center gap-1 group hover:border-pink-500/50 pulse-glow z-20"
-          >
-            <svg
-              id="start-icon"
-              class="w-7 h-7 text-pink-400 fill-current ml-0.5 group-hover:scale-110 transition-transform"
-              viewBox="0 0 24 24"
-            >
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            <span
-              id="start-text"
-              class="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/65 transition-colors"
-            >
-              Play
-            </span>
-          </button>
-        </div>
-
-        <!-- Keys + Fullscreen -->
-        <div
-          class="controls-bar flex items-center justify-between px-8 pt-6 pb-7 border-t border-white/[0.055]"
-        >
-          <div class="hidden sm:flex items-center gap-2 text-white/20 text-sm">
-            <span>Keys</span>
-            <kbd
-              class="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.07] font-mono text-white/30 text-xs"
-              >1</kbd
-            >
-            <kbd
-              class="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.07] font-mono text-white/30 text-xs"
-              >2</kbd
-            >
-            <kbd
-              class="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.07] font-mono text-white/30 text-xs"
-              >3</kbd
-            >
-            <kbd
-              class="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.07] font-mono text-white/30 text-xs"
-              >4</kbd
-            >
-          </div>
+      <!-- Controls & Hotkeys Hint -->
+      <div class="controls-bar flex items-center justify-between px-8 pt-6 pb-7 border-t border-white/[0.055]">
+        <div class="hidden sm:flex items-center gap-2 text-white/20 text-sm">
+          <span>Keys</span>
+          <kbd class="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.07] font-mono text-white/30 text-xs">1</kbd>
+          <kbd class="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.07] font-mono text-white/30 text-xs">2</kbd>
+          <kbd class="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.07] font-mono text-white/30 text-xs">3</kbd>
+          <kbd class="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.07] font-mono text-white/30 text-xs">4</kbd>
         </div>
       </div>
-    </main>
 
-    <script src="app1.js"></script>
-  </body>
+    </div>
+  </main>
+
+  <script src="app1.js"></script>
+</body>
 </html>
